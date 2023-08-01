@@ -12,6 +12,12 @@ import os
 import pinecone
 from docx import Document
 
+import base64
+def get_image_base64(image_path):
+    with open(image_path, "rb") as img_file:
+        return base64.b64encode(img_file.read()).decode('utf-8')
+
+
 def get_doc_text(doc_docs):
     text = ""
     for doc in doc_docs:
@@ -59,27 +65,29 @@ def handle_userinput(user_question):
     response = st.session_state.conversation({'question': user_question})
     st.session_state.chat_history = response['chat_history']
 
-    message_pairs = []
-    for i in range(0, len(st.session_state.chat_history), 2):
-        # Access the message pair
-        message_pair = st.session_state.chat_history[i:i+2]
-
-        # Process the message pair
-        user_message, bot_message = message_pair
-        # Swap the user message and bot message when adding to message_pairs
-        message_pairs.insert(0, (bot_template.replace("{{MSG}}", bot_message.content),
-                                  user_template.replace("{{MSG}}", user_message.content)))
-
-    # Display all message pairs
-    for bot_message, user_message in message_pairs:
-        st.write(user_message, unsafe_allow_html=True)
-        st.write(bot_message, unsafe_allow_html=True)
-
+    for i in range(len(st.session_state.chat_history)-2, -2, -2):
+        st.write(user_template.replace(
+            "{{MSG}}", st.session_state.chat_history[i].content), unsafe_allow_html=True) 
+        st.write(bot_template.replace(
+            "{{MSG}}", st.session_state.chat_history[i+1].content), unsafe_allow_html=True) 
 
 def main():
     load_dotenv()
     st.set_page_config(page_title="Chat with multiple documents",
                        page_icon=":books:")
+
+    logo_base64 = get_image_base64("logo.jpg") 
+
+    st.markdown(
+        f"""
+        <div style="position: absolute; top: 0px; left: 0px;">
+            <img src="data:image/jpg;base64,{logo_base64}" width="210">
+            <div style="color: #aaa; font-size: 1.3em; text-align: right;">Beta</div>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+    
     st.write(css, unsafe_allow_html=True)
 
     if "conversation" not in st.session_state:
@@ -143,7 +151,6 @@ def login():
         correct_password = os.getenv("LOGIN_PASSWORD")
 
         # Check if the username and password are correct
-        # For now, we'll just check if they're equal to "admin" and "password"
         if username == correct_username and password == correct_password:
             st.session_state.logged_in = True
             st.success("Logged in successfully")
@@ -160,4 +167,3 @@ if __name__ == "__main__":
             login()
     else:
         login()
-
